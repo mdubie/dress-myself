@@ -1,0 +1,64 @@
+html, body, h1, h2, div, p {
+  font-family: Helvetica;
+  margin: 15px auto;
+  margin-top: 0;
+  padding: 20px;
+  opacity: .95;
+  color: #fff;
+  text-align: center;
+}
+
+html {
+  background-image: url("backgrounds/normal.jpg");
+
+}
+
+.snow {
+  background-image: url("backgrounds/snow.jpg")
+}
+
+.sun {
+  background-image: url("backgrounds/sun.jpg")
+}
+
+.rain {
+  background-image: url("backgrounds/rain.jpg")
+}
+
+.wind {
+  background-image: url("backgrounds/windy.jpg")
+}
+
+h1, #form, #wxreport, #rec {
+  width: 800px;
+  box-shadow: 2px 2px 5px #222;
+  background-color: #222;
+}
+
+h1 {
+  margin-bottom: 0;
+  padding: 40px 20px;
+}
+
+#form {
+}
+
+#wxreport {
+	padding: 10px 20px;
+}
+
+#rec {
+  width: 400px;
+}
+
+.item {
+  background-color: #F6FFEF;
+  border: 1px solid #222222;
+  width: 50%;
+  color: #000;
+  box-shadow: 3px 3px 5px #222;
+}
+
+.inactive {
+	display: none;
+}
