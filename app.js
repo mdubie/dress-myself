@@ -1,3 +1,4 @@
+
 /**
  * Uses JSON Proxy to fetch cross origin API call from openweather.map
  * @param  {string}   zipcode  user entered string pattern=[0-9]{5}
@@ -11,40 +12,51 @@ var fetchWeather = function(zipcode, callback) {
 };
 
 /**
- * Takes in raw data object from API call, captures only data of interest and store in wx object
+ * tranlates a raw temp range into a tempCode that is used as a key on the wardrobes object
+ * @param  {number} temp temperature returned from API call Celsisu ~[-40, 40]
+ * @return {number}      [-1, 0, 1, 2] to express temp range
+ */
+var tempCode = function(temp){
+  var code = Math.min(Math.max(Math.ceil(temp/10), -1), 2);
+  return code === -0 ? 0 : code;
+};
+
+/**
+ * Takes in data object from API call, captures only data of interest and store in wx object
  * @param  {object} data return from API call
  * @return {object}      selected and processed data from API call
  */
 var translateWx = function(data) {
-  var wx = {};
-  wx.loc = data.name;
-  wx.temp = Math.round(data.main.temp - 273);
-  wx.info = wxCodes[data.weather[0].id].id;
-  return wx;
+	var temp = Math.round(data.main.temp - 273);
+	var base = wxCodes[data.weather[0].id];
+  return {
+    loc : data.name,
+    temp : temp,
+    info : base.id,
+    description : base.description,
+    tempCode: tempCode(temp)
+  };
 };
 
 /**
- * Returns a wardrobe for this wx condition
- * @param  {object} wx        wx condition object
- * @param  {object} wardrobes all potential wardrobes object
- * @return {object}           wardrobe for this wx condition
+ * returns requested wardrobe as specified by key
+ * @param  {string} key will be called with key for tempCode [-1, 0 , 1, 2] or info [sun, rain, wind]
+ * @return {object} will return object as requested from the key
  */
-var pickWardrobe = function(wx) {
-  var wardrobe = {};
-  if (wx.temp < -10) {
-    wardrobe = fetchWardrobe('freezeing');
-  } if (-10 <= wx.temp && wx.temp < 5) {
-    wardrobe = fetchWardrobe('cold');
-  } if (5 <= wx.temp && wx.temp < 20) {
-    wardrobe = fetchWardrobe('warm');
-  } if (20 <= wx.temp) {
-    wardrobe = fetchWardrobe('hot');
-  } 
-  return wardrobe;
+var pickWardrobes = function(key){
+  return {
+    '-1': {accessories:['gloves', 'toe warmers', 'mittens'], head: ['hat', 'beanie'], neck:['scarf', 'neck warmer'], top:['ski coat', 'parka', 'winter jacket'], bottom:['snow pants', 'double sweats', 'woolies'], feet:['boots', 'muckluks', 'bean boots', 'galoshes']},
+    '0': {accessories:[], head:['gloves', 'hat', 'beanie', 'ear warmer'], neck:['scarf'], top:['blazer', 'flannel', 'shell', 'light coat', 'pattaguicci'], bottom:['sweats', 'trousers'], feet:['cowboy boots', 'boots', 'sneakers']},
+    '1': {accessories:[], head:['head band', 'top hat'], neck:[], top:['flannel', 'sweater', 'hoodie', 'sweatshirt', 'long sleeve T'], bottom:['sweats', 'jeans', 'khakis', 'wind pants'], feet:['sneakers', 'dunks', 'nikes', 'running shoes', 'boat shoes']},
+    '2': {accessories:[], head:[], neck:[], top:['lax penny', 'white T', 'cutoff T', 'no shirt?'], bottom:['bathing suite', 'swim trunks', 'chubs', 'shorts', 'sweat shorts'], feet:['sandals', 'tevas', 'chacos', 'rainbows', 'mocasins']},
+    sun: {accessories:['sun glasses'], head:['baseball cap'], neck:[], top:[], bottom:[], feet:[]},
+	  rain: {accessories:['umbrella'], head:[], neck:[], top:['rain coat', 'poncho'], bottom:[], feet:['mud boots', 'rain boots']},
+	  wind: {accessories:[], head:['spinny hat'], neck:['scarf'], top:['wind breaker'], bottom:['wind pants'], feet:[]}
+  }[key]
 };
 
 /**
- * Takes base wardrobe and extends articles array of conditional wardrobe
+ * Takes base wardrobe and extends articles array of modifier wardrobe
  * @param  {object} wardrobe1 wardrobe specific to a given temperature condition
  * @param  {object} wardrobe2 wardrobe specific to a give weather condidtion
  * @return {object}           merged wardobe
@@ -54,17 +66,6 @@ var extendWardrobe = function(wardrobe1, wardrobe2) {
     wardrobe1[key] = wardrobe1[key].concat(wardrobe2[key]);
   }
   return wardrobe1;
-};
-
-var modifyWardrobe = function(wx, wardrobe) {
-	if (wx.info === 'rain') {
-    wardrobe = extendWardrobe(wardrobe, fetchWardrobe('rain'));
-  } if (wx.info === 'sun') {
-    wardrobe = extendWardrobe(wardrobe, fetchWardrobe('sun'));
-  } if (wx.info === 'wind') {
-    wardrobe = extendWardrobe(wardrobe, fetchWardrobe('wind'));
-  }
-  return wardrobe;
 };
 
 /**
@@ -86,21 +87,8 @@ var outfitSelect = function(wardrobe) {
     var item = randomElement(wardrobe[key]);
     wardrobe[key] = item;
     item === undefined && delete wardrobe[key];
-  };
+  }
   return wardrobe;
-};
-
-var fetchWardrobe = function(key){
-  var wardrobes = {
-    freezeing: {accessories:['gloves', 'toe warmers', 'mittens'], head: ['hat', 'beanie'], neck:['scarf', 'neck warmer'], top:['ski coat', 'parka', 'winter jacket'], bottom:['snow pants', 'double sweats', 'woolies'], feet:['boots', 'muckluks', 'bean boots', 'galoshes']},
-    cold: {accessories:[], head:['gloves', 'hat', 'beanie', 'ear warmer'], neck:['scarf'], top:['blazer', 'flannel', 'shell', 'light coat', 'pattaguicci'], bottom:['sweats', 'trousers'], feet:['cowboy boots', 'boots', 'sneakers']},
-    warm: {accessories:[], head:['head band', 'top hat'], neck:[], top:['flannel', 'sweater', 'hoodie', 'sweatshirt', 'long sleeve T'], bottom:['sweats', 'jeans', 'khakis', 'wind pants'], feet:['sneakers', 'dunks', 'nikes', 'running shoes', 'boat shoes']},
-    hot: {accessories:[], head:[], neck:[], top:['lax penny', 'white T', 'cutoff T', 'no shirt?'], bottom:['bathing suite', 'swim trunks', 'chubs', 'shorts', 'sweat shorts'], feet:['sandals', 'tevas', 'chacos', 'rainbows', 'mocasins']},
-    sun: {accessories:['sun glasses'], head:['baseball cap'], neck:[], top:[], bottom:[], feet:[]},
-  	rain: {accessories:['umbrella'], head:[], neck:[], top:['rain coat', 'poncho'], bottom:[], feet:['mud boots', 'rain boots']},
-  	wind: {accessories:[], head:['spinny hat'], neck:['scarf'], top:['wind breaker'], bottom:['wind pants'], feet:[]}
-  };
-  return wardrobes[key];
 };
 
 /**
@@ -109,9 +97,10 @@ var fetchWardrobe = function(key){
  * @return {object}    object containing only and all articles to be recommended for wear
  */
 var recommendataion = function(wx) {
-  var wardrobe = pickWardrobe(wx);
-  var modifiedWardrobe = modifyWardrobe(wx, wardrobe)
-  var outfit = outfitSelect(modifiedWardrobe);
+  var baseWardrobe = pickWardrobes(wx.tempCode) || {};
+  var modifierWardrobe = pickWardrobes(wx.info) || {};
+  var wardrobe = extendWardrobe(baseWardrobe, modifierWardrobe);
+  var outfit = outfitSelect(wardrobe);
   return outfit;
 };
 
@@ -132,20 +121,12 @@ var displayReset = function(){
  * @param  {object} wx all relevant wx information
  */
 var displayWx = function(wx) {
-  var $report = $('<p id=report></p>');
-  $report.text(wx.info.description + ' and ' + wx.temp + ' degrees C outside today for ' + wx.loc + '!');
+  var $report = $('<p id=report></p>')
+    .text(wx.description+ ' and ' + wx.temp + ' degrees C outside today for ' + wx.loc + '!');
   $('#wxreport').append($report);
   $('#rec').removeClass('inactive');
   $('#wxreport').removeClass('inactive');
-  if (wx.info === 'rain') {
-    $('html').addClass('rain');
-  } if (wx.info === 'sun') {
-    $('html').addClass('sun');
-  } if (wx.info === 'wind') {
-    $('html').addClass('wind');
-  } if (wx.info === 'snow') {
-    $('html').addClass('snow');
-  }
+  $('html').addClass(wx.info);
 };
 
 /**
@@ -164,7 +145,7 @@ var displayOutfit = function(outfit) {
 };
 
 /**
- * Main function for website. listen for button clicks, captures zipcode, and executes processing and display
+ * Main function for website. listent for button clicks, captures zipcode, and executes processing and display
  */
 $(document).ready(function() {
   $('#btn').on('click', function() {

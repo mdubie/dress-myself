@@ -26,104 +26,74 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/**
+            <pre class="prettyprint source linenums"><code>
+/**
  * Uses JSON Proxy to fetch cross origin API call from openweather.map
  * @param  {string}   zipcode  user entered string pattern=[0-9]{5}
  * @param  {Function} callback used to capture data returned from JSON call
  */
 var fetchWeather = function(zipcode, callback) {
-	var APIKEY = '69b4d7933efbceb618ca503d8fa7821e';
-	var URL = "http%3A%2F%2Fapi.openweathermap.org%2Fdata%2F2.5%2Fweather%3Fzip%3D" + zipcode + "%2Cus%26APPID%3D" + APIKEY;
-	$.getJSON('https://jsonp.afeld.me/?callback=?&amp;url=' + URL, callback);
+  var APIKEY = '69b4d7933efbceb618ca503d8fa7821e';
+  var baseURL = 'http://api.openweathermap.org/data/2.5/weather?zip=' + zipcode + ',us&amp;appid=' + APIKEY;
+  var URL = encodeURIComponent(baseURL);
+  $.getJSON('https://jsonp.afeld.me/?callback=?&amp;url=' + URL, callback);
 };
 
 /**
- * Takes in raw data object from API call, captures only data of interest and store in wx object
+ * tranlates a raw temp range into a tempCode that is used as a key on the wardrobes object
+ * @param  {number} temp temperature returned from API call Celsisu ~[-40, 40]
+ * @return {number}      [-1, 0, 1, 2] to express temp range
+ */
+var tempCode = function(temp){
+  var code = Math.min(Math.max(Math.ceil(temp/10), -1), 2);
+  return code === -0 ? 0 : code;
+};
+
+/**
+ * Takes in data object from API call, captures only data of interest and store in wx object
  * @param  {object} data return from API call
  * @return {object}      selected and processed data from API call
  */
 var translateWx = function(data) {
-	var wx = {};
-	wx.loc = data.name;
-	wx.temp = Math.round(data.main.temp - 273);
-	wx.info = wxCodes[data.weather[0].id];
-	wx.rainy = wx.info.id === 'rain';
-	wx.sunny = wx.info.id === 'sun';
-	wx.windy = wx.info.id === 'wind' || data.wind.speed > 8;
-	wx.snowy = wx.info.id === 'snow';
-	wx.tempShift = wx.rainy ? -5 : 0;
-	wx.tempShift += wx.sunny ? +5 : 0;
-	wx.tempShift += wx.windy ? -5 : 0;
-	wx.tempShift += wx.snowy ? -5 : 0;
-	wx.tempFeel = wx.temp + wx.tempShift;
-	return wx;
+	var temp = Math.round(data.main.temp - 273);
+	var base = wxCodes[data.weather[0].id];
+  return {
+    loc : data.name,
+    temp : temp,
+    info : base.id,
+    description : base.description,
+    tempCode: tempCode(temp)
+  };
 };
 
 /**
- * createWardrobes contains nested constructor and data neccessary to build wardrobes
- * @return {object} contains all temperature and conditions wardrobes
+ * returns requested wardrobe as specified by key
+ * @param  {string} key will be called with key for tempCode [-1, 0 , 1, 2] or info [sun, rain, wind]
+ * @return {object} will return object as requested from the key
  */
-var createWardrobes = function() {
-	var Wardrobe = function(accessories, head, neck, top, bottom, feet) {
-		return {
-			accessories: accessories || [],
-			head: head || [],
-			neck: neck || [],
-			top: top || [],
-			bottom: bottom || [],
-			feet: feet || []
-		};
-	};
-
-	var wardrobes = {};
-	wardrobes.freezeing = Wardrobe(['gloves', 'toe warmers', 'mittens'], ['hat', 'beanie'], ['scarf', 'neck warmer'], ['ski coat', 'parka', 'winter jacket'], ['snow pants', 'double sweats', 'woolies'], ['boots', 'muckluks', 'bean boots', 'galoshes']);
-	wardrobes.cold = Wardrobe([], ['gloves', 'hat', 'beanie', 'ear warmer'], ['scarf'], ['blazer', 'flannel', 'shell', 'light coat', 'pattaguicci'], ['sweats', 'trousers'], ['cowboy boots', 'boots', 'sneakers']);
-	wardrobes.warm = Wardrobe([], ['head band', 'top hat'], [], ['flannel', 'sweater', 'hoodie', 'sweatshirt', 'long sleeve T'], ['sweats', 'jeans', 'khakis', 'wind pants'], ['sneakers', 'dunks', 'nikes', 'running shoes', 'boat shoes']);
-	wardrobes.hot = Wardrobe([], [], [], ['lax penny', 'white T', 'cutoff T', 'no shirt?'], ['bathing suite', 'swim trunks', 'chubs', 'shorts', 'sweat shorts'], ['sandals', 'tevas', 'chacos', 'rainbows', 'mocasins']);
-	wardrobes.sun = Wardrobe(['sun glasses'], ['baseball cap'], [], [], [], []);
-	wardrobes.rain = Wardrobe(['umbrella'], [], [], ['rain coat', 'poncho'], [], ['mud boots', 'rain boots']);
-	wardrobes.wind = Wardrobe([], ['spinny hat'], ['scarf'], ['wind breaker'], ['wind pants'], []);
-
-	return wardrobes;
+var pickWardrobes = function(key){
+  return {
+    '-1': {accessories:['gloves', 'toe warmers', 'mittens'], head: ['hat', 'beanie'], neck:['scarf', 'neck warmer'], top:['ski coat', 'parka', 'winter jacket'], bottom:['snow pants', 'double sweats', 'woolies'], feet:['boots', 'muckluks', 'bean boots', 'galoshes']},
+    '0': {accessories:[], head:['gloves', 'hat', 'beanie', 'ear warmer'], neck:['scarf'], top:['blazer', 'flannel', 'shell', 'light coat', 'pattaguicci'], bottom:['sweats', 'trousers'], feet:['cowboy boots', 'boots', 'sneakers']},
+    '1': {accessories:[], head:['head band', 'top hat'], neck:[], top:['flannel', 'sweater', 'hoodie', 'sweatshirt', 'long sleeve T'], bottom:['sweats', 'jeans', 'khakis', 'wind pants'], feet:['sneakers', 'dunks', 'nikes', 'running shoes', 'boat shoes']},
+    '2': {accessories:[], head:[], neck:[], top:['lax penny', 'white T', 'cutoff T', 'no shirt?'], bottom:['bathing suite', 'swim trunks', 'chubs', 'shorts', 'sweat shorts'], feet:['sandals', 'tevas', 'chacos', 'rainbows', 'mocasins']},
+    sun: {accessories:['sun glasses'], head:['baseball cap'], neck:[], top:[], bottom:[], feet:[]},
+	  rain: {accessories:['umbrella'], head:[], neck:[], top:['rain coat', 'poncho'], bottom:[], feet:['mud boots', 'rain boots']},
+	  wind: {accessories:[], head:['spinny hat'], neck:['scarf'], top:['wind breaker'], bottom:['wind pants'], feet:[]}
+  }[key]
 };
 
 /**
- * Takes base wardrobe and extends articles array of conditional wardrobe
+ * Takes base wardrobe and extends articles array of modifier wardrobe
  * @param  {object} wardrobe1 wardrobe specific to a given temperature condition
  * @param  {object} wardrobe2 wardrobe specific to a give weather condidtion
  * @return {object}           merged wardobe
  */
 var extendWardrobe = function(wardrobe1, wardrobe2) {
-	for (var key in wardrobe1) {
-		wardrobe1[key] = wardrobe1[key].concat(wardrobe2[key]);
-	}
-	return wardrobe1;
-};
-
-/**
- * Returns a wardrobe for this wx condition
- * @param  {object} wx        wx condition object
- * @param  {object} wardrobes all potential wardrobes object
- * @return {object}           wardrobe for this wx condition
- */
-var pickWardrobe = function(wx, wardrobes) {
-	var wardrobe = {};
-	if (wx.tempFeel &lt; -10) {
-		wardrobe = wardrobes.freezeing;
-	} if (-10 &lt;= wx.tempFeel &amp;&amp; wx.tempFeel &lt; 5) {
-		wardrobe = wardrobes.cold;
-	} if (5 &lt;= wx.tempFeel &amp;&amp; wx.tempFeel &lt; 20) {
-		wardrobe = wardrobes.warm;
-	} if (20 &lt;= wx.tempFeel) {
-		wardrobe = wardrobes.hot;
-	} if (wx.rainy) {
-		wardrobe = extendWardrobe(wardrobe, wardrobes.rain);
-	} if (wx.sunny) {
-		wardrobe = extendWardrobe(wardrobe, wardrobes.sun);
-	} if (wx.windy) {
-		wardrobe = extendWardrobe(wardrobe, wardrobes.wind);
-	}
-	return wardrobe;
+  for (var key in wardrobe1) {
+    wardrobe1[key] = wardrobe1[key].concat(wardrobe2[key]);
+  }
+  return wardrobe1;
 };
 
 /**
@@ -132,7 +102,7 @@ var pickWardrobe = function(wx, wardrobes) {
  * @return {string} one random clothing article of given array
  */
 var randomElement = function(items) {
-	return items[Math.floor(Math.random() * items.length)];
+  return items[Math.floor(Math.random() * items.length)];
 };
 
 /**
@@ -140,13 +110,13 @@ var randomElement = function(items) {
  * @param  {object} wardrobe wardrobe object
  * @return {object}          trimmed wardrobe object
  */
-var wardrobeSelect = function(wardrobe) {
-	for (var key in wardrobe) {
-		var item = randomElement(wardrobe[key]);
-		wardrobe[key] = item;
-		item === undefined &amp;&amp; delete wardrobe[key];
-	}
-	return wardrobe;
+var outfitSelect = function(wardrobe) {
+  for (var key in wardrobe) {
+    var item = randomElement(wardrobe[key]);
+    wardrobe[key] = item;
+    item === undefined &amp;&amp; delete wardrobe[key];
+  }
+  return wardrobe;
 };
 
 /**
@@ -155,10 +125,23 @@ var wardrobeSelect = function(wardrobe) {
  * @return {object}    object containing only and all articles to be recommended for wear
  */
 var recommendataion = function(wx) {
-	var wardrobes = createWardrobes();
-	var wardrobe = pickWardrobe(wx, wardrobes);
-	var outfit = wardrobeSelect(wardrobe);
-	return outfit;
+  var baseWardrobe = pickWardrobes(wx.tempCode) || {};
+  var modifierWardrobe = pickWardrobes(wx.info) || {};
+  var wardrobe = extendWardrobe(baseWardrobe, modifierWardrobe);
+  var outfit = outfitSelect(wardrobe);
+  return outfit;
+};
+
+/**
+ * makes required DOM changes to remove display of previously displayed WX and outfit 
+ */
+var displayReset = function(){
+  $('#rec').children().remove();
+  $('#rec').addClass('inactive');
+  $('#wxreport').children().remove();
+  $('#wxreport').addClass('inactive');
+  $('html').removeClass();
+  $('#zip').val('');
 };
 
 /**
@@ -166,20 +149,12 @@ var recommendataion = function(wx) {
  * @param  {object} wx all relevant wx information
  */
 var displayWx = function(wx) {
-  var $report = $('&lt;p id=report>&lt;/p>');
-  $report.text(wx.info.description + ' and ' + wx.temp + ' degrees C outside today for ' + wx.loc + '!');
+  var $report = $('&lt;p id=report>&lt;/p>')
+    .text(wx.description+ ' and ' + wx.temp + ' degrees C outside today for ' + wx.loc + '!');
   $('#wxreport').append($report);
   $('#rec').removeClass('inactive');
   $('#wxreport').removeClass('inactive');
-  if (wx.rainy) {
-    $('html').addClass('rain');
-	} if (wx.sunny) {
-		$('html').addClass('sun');
-	} if (wx.windy) {
-		$('html').addClass('wind');
-	} if (wx.snow) {
-		$('html').addClass('snow');
-	}
+  $('html').addClass(wx.info);
 };
 
 /**
@@ -187,41 +162,29 @@ var displayWx = function(wx) {
  * @param  {object} outfit object containing only and all articles to be recommended for wear
  */
 var displayOutfit = function(outfit) {
-	var $recHeader = $('&lt;h3>&lt;/h3>');
-	$recHeader.text('You should wear: ');
-	$('#rec').append($recHeader);
-	for (var key in outfit) {
-		var $p = $('&lt;p class=item>&lt;/p>');
-		$p.text(outfit[key]);
-		$('#rec').append($p);
-	}
+  var $recHeader = $('&lt;h3>&lt;/h3>');
+  $recHeader.text('You should wear: ');
+  $('#rec').append($recHeader);
+  for (var key in outfit) {
+    var $p = $('&lt;p class=item>&lt;/p>');
+    $p.text(outfit[key]);
+    $('#rec').append($p);
+  }
 };
 
 /**
- * makes required DOM changes to remove display of previously displayed WX and outfit 
- */
-var displayReset = function(){
-	$('#rec').children().remove();
-	$('#rec').addClass('inactive');
-	$('#wxreport').children().remove();
-	$('#wxreport').addClass('inactive');
-	$('html').removeClass();
-	$('#zip').val('');
-};
-
-/**
- * Main function for website. listen for button clicks, captures zipcode, and executes processing and display
+ * Main function for website. listent for button clicks, captures zipcode, and executes processing and display
  */
 $(document).ready(function() {
-	$('#btn').on('click', function() {
-		var zipcode = $('#zip').val();
-		displayReset();
-		fetchWeather(zipcode, function(data) {
-			var wx = translateWx(data);
-			displayWx(wx);
-			displayOutfit(recommendataion(wx));
-		});
-	});
+  $('#btn').on('click', function() {
+    var zipcode = $('#zip').val();
+    displayReset();
+    fetchWeather(zipcode, function(data) {
+      var wx = translateWx(data);
+      displayWx(wx);
+      displayOutfit(recommendataion(wx));
+    });
+  });
 });</code></pre>
         </article>
     </section>
@@ -232,13 +195,13 @@ $(document).ready(function() {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#createWardrobes">createWardrobes</a></li><li><a href="global.html#displayOutfit">displayOutfit</a></li><li><a href="global.html#displayReset">displayReset</a></li><li><a href="global.html#displayWx">displayWx</a></li><li><a href="global.html#extendWardrobe">extendWardrobe</a></li><li><a href="global.html#fetchWeather">fetchWeather</a></li><li><a href="global.html#pickWardrobe">pickWardrobe</a></li><li><a href="global.html#randomElement">randomElement</a></li><li><a href="global.html#recommendataion">recommendataion</a></li><li><a href="global.html#translateWx">translateWx</a></li><li><a href="global.html#wardrobeSelect">wardrobeSelect</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#displayOutfit">displayOutfit</a></li><li><a href="global.html#displayReset">displayReset</a></li><li><a href="global.html#displayWx">displayWx</a></li><li><a href="global.html#extendWardrobe">extendWardrobe</a></li><li><a href="global.html#fetchWeather">fetchWeather</a></li><li><a href="global.html#outfitSelect">outfitSelect</a></li><li><a href="global.html#pickWardrobes">pickWardrobes</a></li><li><a href="global.html#randomElement">randomElement</a></li><li><a href="global.html#recommendataion">recommendataion</a></li><li><a href="global.html#tempCode">tempCode</a></li><li><a href="global.html#translateWx">translateWx</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.0-dev</a> on Fri Apr 29 2016 12:31:17 GMT-0400 (EDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.0-dev</a> on Sat Apr 30 2016 09:20:54 GMT-0400 (EDT)
 </footer>
 
 <script> prettyPrint(); </script>
