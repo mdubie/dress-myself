@@ -27,8 +27,8 @@ var tempCode = function(temp){
  * @return {object}      selected and processed data from API call
  */
 var translateWx = function(data) {
-	var temp = Math.round(data.main.temp - 273);
-	var base = wxCodes[data.weather[0].id];
+  var temp = Math.round(data.main.temp - 273);
+  var base = wxCodes[data.weather[0].id];
   return {
     loc : data.name,
     temp : temp,
@@ -50,8 +50,8 @@ var pickWardrobes = function(key){
     '1': {accessories:[], head:['head band', 'top hat'], neck:[], top:['flannel', 'sweater', 'hoodie', 'sweatshirt', 'long sleeve T'], bottom:['sweats', 'jeans', 'khakis', 'wind pants'], feet:['sneakers', 'dunks', 'nikes', 'running shoes', 'boat shoes']},
     '2': {accessories:[], head:[], neck:[], top:['lax penny', 'white T', 'cutoff T', 'no shirt?'], bottom:['bathing suite', 'swim trunks', 'chubs', 'shorts', 'sweat shorts'], feet:['sandals', 'tevas', 'chacos', 'rainbows', 'mocasins']},
     sun: {accessories:['sun glasses'], head:['baseball cap'], neck:[], top:[], bottom:[], feet:[]},
-	  rain: {accessories:['umbrella'], head:[], neck:[], top:['rain coat', 'poncho'], bottom:[], feet:['mud boots', 'rain boots']},
-	  wind: {accessories:[], head:['spinny hat'], neck:['scarf'], top:['wind breaker'], bottom:['wind pants'], feet:[]}
+    rain: {accessories:['umbrella'], head:[], neck:[], top:['rain coat', 'poncho'], bottom:[], feet:['mud boots', 'rain boots']},
+    wind: {accessories:[], head:['spinny hat'], neck:['scarf'], top:['wind breaker'], bottom:['wind pants'], feet:[]}
   }[key]
 };
 
