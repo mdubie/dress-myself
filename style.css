@@ -3,30 +3,28 @@ html, body, h1, h2, div, p {
   margin: 15px auto;
   margin-top: 0;
   padding: 20px;
-  opacity: .95;
   color: #fff;
   text-align: center;
 }
 
 html {
-  background-image: url("backgrounds/normal.jpg");
-
+  background-color: #000;
 }
 
 .snow {
-  background-image: url("backgrounds/snow.jpg")
+  background-color: #eee;
 }
 
 .sun {
-  background-image: url("backgrounds/sun.jpg")
+  background-color: #FFDD40;
 }
 
 .rain {
-  background-image: url("backgrounds/rain.jpg")
+  background-color: #303285;
 }
 
 .wind {
-  background-image: url("backgrounds/windy.jpg")
+  background-color: #679B00;
 }
 
 h1, #form, #wxreport, #rec {
