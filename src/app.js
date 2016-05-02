@@ -63,7 +63,9 @@ var pickWardrobes = function(key){
  */
 var extendWardrobe = function(wardrobe1, wardrobe2) {
   for (var key in wardrobe1) {
-    wardrobe1[key] = wardrobe1[key].concat(wardrobe2[key]);
+    if (wardrobe2[key]) {
+      wardrobe1[key] = wardrobe1[key].concat(wardrobe2[key]);
+    }
   }
   return wardrobe1;
 };

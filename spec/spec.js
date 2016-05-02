@@ -26,69 +26,63 @@
     });
 
     describe('tempCode', function() {
-      it('should return 2 for temps 11 and above', function() {
+      var buildInputRange = function(s,f){
         var result = [];
-        for(var i = 11; i < 40; i++){
+        for(var i = s; i <= f; i++){
           result.push(i);
         }
+        return result;
+      }
+
+      var allArrValEqual = function(array, val){
+        return array => array.every(
+          num => num === val
+        );
+      };
+
+      it('should return 2 for temps 11 and above', function() {
+        var result = buildInputRange(11, 40);
         result = result.map(x => tempCode(x));
 
-        expect(result).to.satisfy(
-          a => a.every(
-            n => n === 2
-          )
-        );
+        expect(result).to.satisfy(function(array){
+          return allArrValEqual(array, 2);
+        });
       });
 
       it('should return 1 for temps between 1 and 10', function() {
-        var result = [];
-        for(var i = 1; i <= 10; i++){
-          result.push(i);
-        }
+        var result = buildInputRange(1, 10);
         result = result.map(x => tempCode(x));
 
-        expect(result).to.satisfy(
-          a => a.every(
-            n => n === 1
-          )
-        );
+        expect(result).to.satisfy(function(array){
+          return allArrValEqual(array, 1);
+        });
       });
 
       it('should return 0 for temps between -9C and 0', function() {
-        var result = [];
-        for(var i = -9; i <= 0; i++){
-          result.push(i);
-        }
+        var result = buildInputRange(-9, 0);
         result = result.map(x => tempCode(x));
 
-        expect(result).to.satisfy(
-          a => a.every(
-            n => n === 0
-          )
-        );
+        expect(result).to.satisfy(function(array){
+          return allArrValEqual(array, 0);
+        });
       });
 
       it('should return -1 for temps -10C and less', function() {
-        var result = [];
-        for(var i = -40; i <= -10; i++){
-          result.push(i);
-        }
+        var result = buildInputRange(-40, -10);
         result = result.map(x => tempCode(x));
 
-        expect(result).to.satisfy(
-          a => a.every(
-            n => n === -1
-          )
-        );
+        expect(result).to.satisfy(function(array){
+          return allArrValEqual(array, -1);
+        });
       });
 
     });
 
     describe('pickWardrobes', function() {
       it('should return correct object for all calls', function() {
-        var exhaustiveCalls = [-1, 0, 1, 2, 'sun', 'rain', 'wind'];
-        var exhaustiveResults = exhaustiveCalls.map(x => pickWardrobes(x))
-        var expectedResults = [
+        var exhaustiveArguments = [-1, 0, 1, 2, 'sun', 'rain', 'wind'];
+        var exhaustiveReturns = exhaustiveArguments.map(x => pickWardrobes(x));
+        var expectedReturns = [
           {accessories:['gloves', 'toe warmers', 'mittens'], head: ['hat', 'beanie'], neck:['scarf', 'neck warmer'], top:['ski coat', 'parka', 'winter jacket'], bottom:['snow pants', 'double sweats', 'woolies'], feet:['boots', 'muckluks', 'bean boots', 'galoshes']},
           {accessories:[], head:['gloves', 'hat', 'beanie', 'ear warmer'], neck:['scarf'], top:['blazer', 'flannel', 'shell', 'light coat', 'pattaguicci'], bottom:['sweats', 'trousers'], feet:['cowboy boots', 'boots', 'sneakers']},
           {accessories:[], head:['head band', 'top hat'], neck:[], top:['flannel', 'sweater', 'hoodie', 'sweatshirt', 'long sleeve T'], bottom:['sweats', 'jeans', 'khakis', 'wind pants'], feet:['sneakers', 'dunks', 'nikes', 'running shoes', 'boat shoes']},
@@ -96,29 +90,57 @@
           {accessories:['sun glasses'], head:['baseball cap'], neck:[], top:[], bottom:[], feet:[]},
           {accessories:['umbrella'], head:[], neck:[], top:['rain coat', 'poncho'], bottom:[], feet:['mud boots', 'rain boots']},
           {accessories:[], head:['spinny hat'], neck:['scarf'], top:['wind breaker'], bottom:['wind pants'], feet:[]}
-        ]
+        ];
 
-        expect(exhaustiveResults).to.eql(expectedResults);
+        expect(exhaustiveReturns).to.eql(expectedReturns);
       });
 
     });
 
-    describe('pickWardrobes', function() {
-      it('should return correct object for all calls', function() {
+    describe('outfitSelect', function() {
+      it('all values should be strings (not arrays or undefined)', function() {
+        var input = {accessories:['umbrella'], head:[], neck:[], top:['rain coat', 'poncho'], bottom:[], feet:['mud boots', 'rain boots']};
+        var output = outfitSelect(input);
 
-        expect(exhaustiveResults).to.eql(expectedResults);
+        expect(output).to.satisfy(function(outfitObj){
+          for(var key in outfitObj){
+            if (typeof outfitObj[key] !== 'string') {
+              return false;
+            }
+          }
+          return true;
+        });
+      });
+
+      it('keys with empty arrays should be removed', function(){
+        var input = {a: ['x', 'y', 'z'], b:[]};
+
+        expect(outfitSelect(input)).to.not.have.keys('b');
+      })
+
+      it('keys with arrays should have a random element picked', function(){
+        var input = {a: ['x', 'y', 'z'], b:[]};
+
+        expect(input.a).to.include(outfitSelect(input).a);
+      })
+    });
+
+    describe('extendWardrobe', function() {
+      it('should concatenate arrays of a given key', function() {
+        var objectA = {a: [1,2,3]};
+        var objectB = {a: ['a', 'b', 'c']};
+
+        expect(extendWardrobe(objectA, objectB).a).to.eql([1,2,3,'a','b','c']);
+      });
+
+      it('extending {} should result in original object', function() {
+        var objectA = {a: [1,2,3], b: ['a', 'b', 'c']};
+        var objectB = {};
+
+        expect(extendWardrobe(objectA, objectB)).to.deep.equal({a: [1,2,3], b: ['a', 'b', 'c']});
       });
 
     });
-
-
-
-
-
-
-
-
-
 
   });
 }());
@@ -128,8 +150,6 @@ extendWardrobe
   new object should contain all key value pairs from each input wardrobe
   new object extended by empty wardrobe ({}) results in new wardrobe initial to input wardrobe
 
-fetchWeather
-  //test later
 
 xoutfitSelect
   should be no empty arrays in wardrobe
@@ -154,6 +174,11 @@ xtempCode
 
 translateWx
   sample object in and out
+
+fetchWeather
+  //test later
+  //cross origin call?
+  //data in a cb fn?  
 
  */
 
